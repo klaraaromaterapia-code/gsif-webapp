@@ -58,6 +58,26 @@ EMAIL_CONFIG = {
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger('gsif')
 
+# n8n webhook pentru automatizări (Telegram, email etc.)
+N8N_WEBHOOK_URL = os.environ.get(
+    'N8N_WEBHOOK_URL',
+    'http://localhost:5678/webhook/gsif-certificate'
+)
+
+
+def _notifica_n8n(data: dict):
+    """Trimite date către n8n webhook async (non-blocking)."""
+    import threading, json as _json, urllib.request as _req
+    def _send():
+        try:
+            body = _json.dumps(data).encode()
+            r = _req.Request(N8N_WEBHOOK_URL, data=body,
+                             headers={'Content-Type': 'application/json'})
+            _req.urlopen(r, timeout=5)
+        except Exception as ex:
+            log.debug(f"n8n webhook skip: {ex}")
+    threading.Thread(target=_send, daemon=True).start()
+
 
 # ══════════════════════════════════════════════════════
 #  HELPERS
@@ -288,6 +308,13 @@ def genereaza():
 
             # Loghează
             log.info(f"Certificat generat: {filename} | CV={cv} | Email={email or 'N/A'}")
+
+            # Notifică n8n webhook (Telegram + automații)
+            _notifica_n8n({
+                'prenume': prenume, 'cifra_vietii': cv,
+                'arhetip': ARHETIPURI.get(cv, ''), 'email': email,
+                'filename': filename,
+            })
 
             form_data = None  # nu mai afișa formularul după succes
 

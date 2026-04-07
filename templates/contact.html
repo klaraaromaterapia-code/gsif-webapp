@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Contact — GSIF{% endblock %}
+
+{% block content %}
+
+<div class="page-hero">
+    <div class="hero-badge">Suntem aici</div>
+    <h1>Contact &amp; <span>Parteneriate</span></h1>
+    <p>Vrei să colaborezi, să te alături echipei sau să afli mai multe?</p>
+</div>
+
+<section class="section section-light">
+    <div class="container">
+        <div class="contact-grid">
+            <!-- INFO -->
+            <div class="contact-info">
+                <h2>Hai să construim împreună</h2>
+                <p>GSIF este o mișcare globală. Dar orice mișcare globală începe local, cu oameni concreți care cred în idee.</p>
+
+                <div class="contact-item">
+                    <span class="contact-icon">✉</span>
+                    <div>
+                        <h4>Email</h4>
+                        <p>contact@gsif.org</p>
+                        <p style="font-size:0.8rem;color:var(--text-light);">Răspundem în 24-48h</p>
+                    </div>
+                </div>
+                <div class="contact-item">
+                    <span class="contact-icon">🌍</span>
+                    <div>
+                        <h4>Website</h4>
+                        <p>everysoulhasamap.org</p>
+                        <p style="font-size:0.8rem;color:var(--text-light);">(în curând)</p>
+                    </div>
+                </div>
+                <div class="contact-item">
+                    <span class="contact-icon">📍</span>
+                    <div>
+                        <h4>Sediu</h4>
+                        <p>România — Fundație înregistrată 2026</p>
+                    </div>
+                </div>
+
+                <div style="margin-top:2.5rem;">
+                    <h4 style="color:var(--violet);margin-bottom:1rem;font-size:0.85rem;letter-spacing:1px;text-transform:uppercase;">Căutăm</h4>
+                    <div class="numerology-badges">
+                        <span class="badge" style="color:var(--violet);background:rgba(40,15,80,0.08);border-color:rgba(40,15,80,0.2);">Avocat / Jurist</span>
+                        <span class="badge" style="color:var(--violet);background:rgba(40,15,80,0.08);border-color:rgba(40,15,80,0.2);">Numerolog</span>
+                        <span class="badge" style="color:var(--violet);background:rgba(40,15,80,0.08);border-color:rgba(40,15,80,0.2);">Developer Web</span>
+                        <span class="badge" style="color:var(--violet);background:rgba(40,15,80,0.08);border-color:rgba(40,15,80,0.2);">Psiholog / Terapeut</span>
+                        <span class="badge" style="color:var(--violet);background:rgba(40,15,80,0.08);border-color:rgba(40,15,80,0.2);">PR / Media</span>
+                        <span class="badge" style="color:var(--violet);background:rgba(40,15,80,0.08);border-color:rgba(40,15,80,0.2);">Ambasador</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FORMULAR CONTACT -->
+            <div class="form-card" style="margin:0;">
+                <h2 class="form-title">✦ Scrie-ne</h2>
+                <p class="form-subtitle">Parteneriat, co-fondare, presă sau orice altceva</p>
+
+                {% if contact_sent %}
+                <div class="success-card">
+                    <div class="success-icon">✉</div>
+                    <h3>Mesaj trimis!</h3>
+                    <p>Te vom contacta în curând. Mulțumim că ești parte din această misiune.</p>
+                </div>
+                {% else %}
+                <form method="POST" action="/contact" id="contactForm">
+                    <div class="form-group">
+                        <label>Numele tău *</label>
+                        <input type="text" name="name" required placeholder="Ion Popescu">
+                    </div>
+                    <div class="form-group">
+                        <label>Email *</label>
+                        <input type="email" name="email" required placeholder="ion@exemplu.ro">
+                    </div>
+                    <div class="form-group">
+                        <label>Subiect</label>
+                        <select name="subject">
+                            <option value="parteneriat">Parteneriat instituțional</option>
+                            <option value="cofondator">Vreau să fiu co-fondator</option>
+                            <option value="ambasador">Vreau să fiu ambasador</option>
+                            <option value="presa">Presă / Media</option>
+                            <option value="altele">Altele</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Mesaj *</label>
+                        <textarea name="message" required rows="5" placeholder="Spune-ne cine ești și cum vrei să contribui..."></textarea>
+                    </div>
+                    <button type="submit" class="btn-submit">Trimite mesajul ✦</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- SCRISORI OFICIALE -->
+<section class="section section-dark">
+    <div class="container">
+        <div class="section-header">
+            <div class="tag" style="color:var(--gold)">✦ Parteneriate instituționale</div>
+            <h2 style="color:var(--white)">Am contactat deja</h2>
+            <p style="color:rgba(255,255,255,0.7)">Sau suntem în curs de a contacta</p>
+        </div>
+        <div class="cards-grid">
+            <div class="card-dark">
+                <div style="font-size:1.5rem;margin-bottom:0.75rem;">🏛️</div>
+                <h3>Ministerul Sănătății</h3>
+                <p>Scrisoare deschisă privind integrarea Certificatului Numerologic în documentele la naștere.</p>
+            </div>
+            <div class="card-dark">
+                <div style="font-size:1.5rem;margin-bottom:0.75rem;">🎓</div>
+                <h3>UNESCO România</h3>
+                <p>Propunere pentru recunoașterea numerologiei ca patrimeniu cultural imaterial.</p>
+            </div>
+            <div class="card-dark">
+                <div style="font-size:1.5rem;margin-bottom:0.75rem;">🌿</div>
+                <h3>UNICEF</h3>
+                <p>Parteneriat pentru implementarea certificatelor în programele pentru copii.</p>
+            </div>
+            <div class="card-dark">
+                <div style="font-size:1.5rem;margin-bottom:0.75rem;">🇪🇺</div>
+                <h3>Parlamentul European</h3>
+                <p>Propunere pentru o rezoluție privind identitatea spirituală ca drept fundamental.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

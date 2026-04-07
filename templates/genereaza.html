@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+{% block title %}Generează Certificatul Tău — GSIF{% endblock %}
+
+{% block extra_css %}
+<style>
+.steps-bar { display:flex; justify-content:center; gap:2rem; margin-bottom:2.5rem; flex-wrap:wrap; }
+.step { display:flex; align-items:center; gap:0.6rem; font-size:0.82rem; color:var(--text-light); letter-spacing:1px; text-transform:uppercase; }
+.step-num { width:28px; height:28px; border-radius:50%; background:rgba(201,168,76,0.15); border:1px solid rgba(201,168,76,0.3); display:flex; align-items:center; justify-content:center; font-family:'Cinzel',serif; font-size:0.8rem; color:var(--gold); }
+.step.active .step-num { background:var(--gold); color:var(--violet); }
+.step.active { color:var(--violet); font-weight:700; }
+
+.info-box { background:rgba(201,168,76,0.07); border:1px solid rgba(201,168,76,0.2); border-radius:12px; padding:1.2rem 1.5rem; margin-bottom:1.5rem; }
+.info-box p { font-size:0.85rem; color:var(--text-mid); line-height:1.6; }
+.info-box strong { color:var(--violet); }
+
+.cifre-preview { display:none; margin-top:1.5rem; }
+.cifre-preview.show { display:block; }
+.cifre-grid { display:grid; grid-template-columns: repeat(3,1fr); gap:0.75rem; margin-top:1rem; }
+.cifra-card { background:var(--bg-section); border-radius:10px; padding:0.75rem; text-align:center; }
+.cifra-card .num { font-family:'Cinzel',serif; font-size:1.5rem; color:var(--gold); display:block; }
+.cifra-card .label { font-size:0.72rem; color:var(--text-light); letter-spacing:1px; text-transform:uppercase; margin-top:0.2rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-hero" style="padding-bottom:50px;">
+    <div class="hero-badge">Gratuit · Instant · Personalizat</div>
+    <h1>Generează <span>Certificatul Tău</span></h1>
+    <p>Introdu data nașterii și descoperă harta sufletului tău</p>
+</div>
+
+<section class="section section-light" style="padding-top:50px;">
+    <div class="container-sm">
+
+        <!-- STEPS BAR -->
+        <div class="steps-bar">
+            <div class="step active"><span class="step-num">1</span> Date personale</div>
+            <div class="step"><span class="step-num">2</span> Generare</div>
+            <div class="step"><span class="step-num">3</span> Descărcare</div>
+        </div>
+
+        {% if not result %}
+        <!-- FORMULARUL -->
+        <div class="form-card">
+            <h2 class="form-title">✦ Harta Sufletului Tău</h2>
+            <p class="form-subtitle">Completează datele de mai jos pentru a genera certificatul</p>
+
+            <div class="info-box">
+                <p>
+                    <strong>De ce avem nevoie de CNP?</strong><br>
+                    CNP-ul este folosit exclusiv pentru calculul <em>Cifrelor Contractului Social</em> —
+                    o cifră numerologică derivată din codul tău de identitate.
+                    Nu stocăm sau transmitem datele tale personale.
+                </p>
+            </div>
+
+            <form method="POST" action="/genereaza" id="certForm">
+                <div class="form-group">
+                    <label>Prenume (opțional)</label>
+                    <input type="text" name="prenume" placeholder="ex: Maria" value="{{ form_data.prenume if form_data else '' }}">
+                    <p class="hint">Apare pe certificat — dacă nu completezi, va fi omis.</p>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Data Nașterii *</label>
+                        <input type="text" name="data_nastere" placeholder="ZZ.LL.AAAA"
+                               pattern="\d{2}\.\d{2}\.\d{4}"
+                               required
+                               value="{{ form_data.data_nastere if form_data else '' }}"
+                               id="dataInput">
+                        <p class="hint">Format: 01.07.1985</p>
+                    </div>
+                    <div class="form-group">
+                        <label>CNP *</label>
+                        <input type="text" name="cnp" placeholder="ex: 1850701123456"
+                               required minlength="4"
+                               value="{{ form_data.cnp if form_data else '' }}"
+                               id="cnpInput">
+                        <p class="hint">Minim 4 cifre. Poate fi cod fiscal.</p>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Email (opțional)</label>
+                    <input type="email" name="email" placeholder="email@tau.ro"
+                           value="{{ form_data.email if form_data else '' }}">
+                    <p class="hint">Dacă completezi, îți trimitem și certificatul pe email.</p>
+                </div>
+
+                <!-- Preview cifre numerologice -->
+                <div class="cifre-preview" id="cifrePreview">
+                    <div class="divider-gold" style="margin-bottom:1rem;"></div>
+                    <p style="text-align:center;font-size:0.8rem;color:var(--text-light);letter-spacing:2px;text-transform:uppercase;margin-bottom:0.5rem;">Previzualizare • Cifrele tale</p>
+                    <div class="cifre-grid" id="cifreGrid"></div>
+                </div>
+
+                <button type="submit" class="btn-submit" id="submitBtn">
+                    ✦ Generează Certificatul Meu
+                </button>
+
+                <div class="loading" id="loading">
+                    <span class="spinner"></span>
+                    <p style="margin-top:0.5rem;font-size:0.9rem;color:var(--text-mid)">
+                        Calculăm harta sufletului tău...
+                    </p>
+                </div>
+
+                <p class="form-privacy">
+                    🔒 Datele tale sunt procesate local și nu sunt stocate sau transmise.
+                    Certificatul este generat instant și descărcat direct pe dispozitivul tău.
+                </p>
+            </form>
+        </div>
+
+        {% else %}
+        <!-- REZULTAT -->
+        <div class="form-card">
+            <div class="success-card">
+                <div class="success-icon">✨</div>
+                <h3>Certificatul tău a fost generat!</h3>
+                {% if result.prenume %}
+                    <p style="color:var(--gold);font-family:'Cinzel',serif;font-size:1.1rem;">{{ result.prenume }}</p>
+                {% endif %}
+                <p>Cifra Vieții: <strong style="color:var(--violet);font-size:1.2rem;">{{ result.cifra_vietii }}</strong>
+                   — <em>{{ result.arhetip }}</em></p>
+                <p style="margin-top:0.75rem;color:var(--text-mid);">{{ result.misiune }}</p>
+            </div>
+
+            <!-- Sumar cifre -->
+            <div style="margin:2rem 0;">
+                <p style="text-align:center;font-size:0.8rem;color:var(--text-light);letter-spacing:2px;text-transform:uppercase;margin-bottom:1rem;">Harta ta numerologică</p>
+                <div class="cifre-grid">
+                    <div class="cifra-card">
+                        <span class="num">{{ result.cifra_vietii }}</span>
+                        <span class="label">Cifra Vieții</span>
+                    </div>
+                    <div class="cifra-card">
+                        <span class="num">{{ result.contract }}</span>
+                        <span class="label">Contract Social</span>
+                    </div>
+                    <div class="cifra-card">
+                        <span class="num">{{ result.an_personal }}</span>
+                        <span class="label">An Personal</span>
+                    </div>
+                    <div class="cifra-card">
+                        <span class="num">{{ result.cifra_zi }}</span>
+                        <span class="label">Talent Nativ</span>
+                    </div>
+                    <div class="cifra-card">
+                        <span class="num">{{ result.cifra_luna }}</span>
+                        <span class="label">Lecție Emoțională</span>
+                    </div>
+                    <div class="cifra-card">
+                        <span class="num">{{ result.cifra_an }}</span>
+                        <span class="label">Generație</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align:center;">
+                <a href="{{ result.download_url }}" class="btn-download">
+                    ⬇ Descarcă PDF-ul
+                </a>
+                {% if result.email_sent %}
+                <p style="margin-top:1rem;font-size:0.85rem;color:var(--text-light);">
+                    ✉ Am trimis certificatul și pe email.
+                </p>
+                {% endif %}
+                <p style="margin-top:1.5rem;"><a href="/genereaza" style="color:var(--text-light);font-size:0.85rem;">← Generează pentru altcineva</a></p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- FAQ -->
+        <div style="margin-top:3rem;">
+            <h3 style="color:var(--violet);text-align:center;margin-bottom:2rem;font-family:'Cinzel',serif;">Întrebări frecvente</h3>
+            <div class="accordion-item">
+                <div class="accordion-q" onclick="toggleAccordion(this)">
+                    Este sigur să introduc CNP-ul? <span class="icon">+</span>
+                </div>
+                <div class="accordion-a">
+                    Da. CNP-ul este procesat local, pe serverul tău, doar pentru calculul cifrelor numerologice.
+                    Nu este stocat în nicio bază de date și nu este transmis nicăieri.
+                </div>
+            </div>
+            <div class="accordion-item">
+                <div class="accordion-q" onclick="toggleAccordion(this)">
+                    Ce este Cifra Vieții? <span class="icon">+</span>
+                </div>
+                <div class="accordion-a">
+                    Cifra Vieții (Life Path Number) este cea mai importantă cifră numerologică.
+                    Se calculează prin reducerea tuturor cifrelor din data nașterii la o singură cifră (sau număr maestru 11, 22, 33).
+                    Reprezintă misiunea ta fundamentală în această viață.
+                </div>
+            </div>
+            <div class="accordion-item">
+                <div class="accordion-q" onclick="toggleAccordion(this)">
+                    Ce sunt numerele maestru? <span class="icon">+</span>
+                </div>
+                <div class="accordion-a">
+                    Numerele 11, 22 și 33 sunt considerate "numere maestru" în numerologie — configurații rare cu o misiune spirituală specială.
+                    Dacă ai un număr maestru, certificatul tău va evidenția acest lucru.
+                </div>
+            </div>
+            <div class="accordion-item">
+                <div class="accordion-q" onclick="toggleAccordion(this)">
+                    Pot genera certificatul pentru altcineva? <span class="icon">+</span>
+                </div>
+                <div class="accordion-a">
+                    Da! Poți genera certificate pentru oricine — copii, partener, prieteni. Ai nevoie doar de data nașterii și CNP-ul lor.
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Preview cifre în timp real
+function calcReduceNumber(n) {
+    const masters = [11, 22, 33];
+    while (n > 9) {
+        if (masters.includes(n)) break;
+        n = String(n).split('').reduce((a,b) => a + parseInt(b), 0);
+    }
+    return n;
+}
+function calcCifraVietii(zi, luna, an) {
+    const s = `${String(zi).padStart(2,'0')}${String(luna).padStart(2,'0')}${String(an).padStart(4,'0')}`;
+    return calcReduceNumber(s.split('').reduce((a,b)=>a+parseInt(b),0));
+}
+function calcContract(cnp) {
+    const cifre = String(cnp).replace(/\D/g,'').split('').map(Number);
+    if (cifre.length < 4) return null;
+    return calcReduceNumber(cifre.reduce((a,b)=>a+b,0));
+}
+
+const ARHETIPURI = {1:"Liderul",2:"Mediatorul",3:"Creatorul",4:"Constructorul",5:"Exploratorul",6:"Ingrijitorul",7:"Înțeleptul",8:"Manifestantul",9:"Filantropul",11:"Iluminatul",22:"Maestrul Constructor",33:"Maestrul Vindecator"};
+
+function updatePreview() {
+    const dataVal = document.getElementById('dataInput').value;
+    const cnpVal = document.getElementById('cnpInput').value;
+    const preview = document.getElementById('cifrePreview');
+    const grid = document.getElementById('cifreGrid');
+
+    const m = dataVal.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    if (!m) { preview.classList.remove('show'); return; }
+
+    const zi = parseInt(m[1]), luna = parseInt(m[2]), an = parseInt(m[3]);
+    if (zi < 1 || zi > 31 || luna < 1 || luna > 12) { preview.classList.remove('show'); return; }
+
+    const cv = calcCifraVietii(zi, luna, an);
+    const cc = cnpVal.length >= 4 ? calcContract(cnpVal) : null;
+
+    let html = `
+        <div class="cifra-card"><span class="num">${cv}</span><span class="label">Cifra Vieții ${[11,22,33].includes(cv)?'✦':''}</span></div>
+        ${cc ? `<div class="cifra-card"><span class="num">${cc}</span><span class="label">Contract Social ${[11,22,33].includes(cc)?'✦':''}</span></div>` : ''}
+        <div class="cifra-card"><span class="num">${ARHETIPURI[cv]||cv}</span><span class="label">Arhetip</span></div>
+    `;
+    grid.innerHTML = html;
+    preview.classList.add('show');
+}
+
+document.getElementById('dataInput').addEventListener('input', updatePreview);
+document.getElementById('cnpInput').addEventListener('input', updatePreview);
+
+// Submit cu loading
+document.getElementById('certForm')?.addEventListener('submit', function() {
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('submitBtn').style.display = 'none';
+    document.getElementById('loading').style.display = 'block';
+});
+</script>
+{% endblock %}

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}GSIF — Every Soul Has a Map{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:ital,wght@0,300;0,400;0,700;1,300;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="navbar">
+    <div class="nav-container">
+        <a class="nav-brand" href="/">
+            <span class="brand-symbol">✦</span>
+            <span class="brand-text">GSIF</span>
+        </a>
+        <button class="nav-toggle" id="navToggle">☰</button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="/" class="{% if request.endpoint == 'home' %}active{% endif %}">Acasă</a></li>
+            <li><a href="/certificat" class="{% if request.endpoint == 'certificat_page' %}active{% endif %}">Certificatul</a></li>
+            <li><a href="/genereaza" class="{% if request.endpoint == 'genereaza' %}active{% endif %}">Generează</a></li>
+            <li><a href="/manifest" class="{% if request.endpoint == 'manifest' %}active{% endif %}">Manifest</a></li>
+            <li><a href="/despre" class="{% if request.endpoint == 'despre' %}active{% endif %}">Despre noi</a></li>
+            <li><a href="/contact" class="{% if request.endpoint == 'contact' %}active{% endif %}">Contact</a></li>
+            <li><a href="/genereaza" class="nav-cta">Generează gratuit ✦</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- FLASH MESSAGES -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-container">
+      {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+{% block content %}{% endblock %}
+
+<!-- FOOTER -->
+<footer class="footer">
+    <div class="footer-inner">
+        <div class="footer-brand">
+            <span class="brand-symbol-lg">✦</span>
+            <p class="footer-motto">"Every Soul Has a Map"</p>
+        </div>
+        <div class="footer-links">
+            <a href="/certificat">Certificatul</a>
+            <a href="/genereaza">Generează</a>
+            <a href="/manifest">Manifest</a>
+            <a href="/despre">Despre noi</a>
+            <a href="/contact">Contact</a>
+        </div>
+        <div class="footer-legal">
+            <p>© 2026 Global Spiritual Identity Foundation (GSIF)</p>
+            <p>Certificatele au valoare spirituală și educațională.</p>
+        </div>
+    </div>
+</footer>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

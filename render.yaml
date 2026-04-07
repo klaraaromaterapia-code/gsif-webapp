@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: gsif-webapp
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: SITE_URL
+        value: https://everysoulhasamap.org
+      - key: GSIF_SECRET_KEY
+        generateValue: true
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false

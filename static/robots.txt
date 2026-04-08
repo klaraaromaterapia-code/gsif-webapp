@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /download/
+Disallow: /api/
+
+Sitemap: https://auris-6368-webapp.onrender.com/sitemap.xml

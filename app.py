@@ -372,6 +372,29 @@ def api_calculeaza():
         return jsonify({'success': False, 'error': str(e)}), 400
 
 
+@app.route('/sitemap.xml')
+def sitemap():
+    """Sitemap XML pentru SEO."""
+    from flask import Response
+    pages = ['', '/certificat', '/genereaza', '/manifest', '/despre', '/contact']
+    base = SITE_URL.rstrip('/')
+    items = '\n'.join(
+        f'  <url><loc>{base}{p}</loc><changefreq>weekly</changefreq><priority>{"1.0" if p == "" else "0.8"}</priority></url>'
+        for p in pages
+    )
+    xml = f'''<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{items}
+</urlset>'''
+    return Response(xml, mimetype='application/xml')
+
+
+@app.route('/robots.txt')
+def robots():
+    from flask import send_from_directory
+    return send_from_directory('static', 'robots.txt')
+
+
 @app.route('/api/health')
 def health():
     return jsonify({'status': 'ok', 'app': 'GSIF', 'version': '1.0'})

@@ -168,6 +168,30 @@
                     ✉ Am trimis certificatul și pe email.
                 </p>
                 {% endif %}
+
+                <!-- Share Buttons -->
+                <div style="margin-top:2rem;">
+                    <p style="font-size:0.78rem;color:var(--text-light);letter-spacing:2px;text-transform:uppercase;margin-bottom:1rem;">Împărtășește harta ta ✦</p>
+                    <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;">
+                        <a id="shareWhatsapp" href="#" target="_blank" rel="noopener"
+                           style="background:#25D366;color:#fff;padding:0.6rem 1.2rem;border-radius:30px;font-size:0.82rem;font-weight:700;display:inline-flex;align-items:center;gap:0.4rem;">
+                            📱 WhatsApp
+                        </a>
+                        <a id="shareFacebook" href="#" target="_blank" rel="noopener"
+                           style="background:#1877F2;color:#fff;padding:0.6rem 1.2rem;border-radius:30px;font-size:0.82rem;font-weight:700;display:inline-flex;align-items:center;gap:0.4rem;">
+                            📘 Facebook
+                        </a>
+                        <a id="shareTelegram" href="#" target="_blank" rel="noopener"
+                           style="background:#229ED9;color:#fff;padding:0.6rem 1.2rem;border-radius:30px;font-size:0.82rem;font-weight:700;display:inline-flex;align-items:center;gap:0.4rem;">
+                            ✈ Telegram
+                        </a>
+                        <button id="shareCopy"
+                           style="background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:0.6rem 1.2rem;border-radius:30px;font-size:0.82rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:0.4rem;">
+                            🔗 Copiază link
+                        </button>
+                    </div>
+                </div>
+
                 <p style="margin-top:1.5rem;"><a href="/genereaza" style="color:var(--text-light);font-size:0.85rem;">← Generează pentru altcineva</a></p>
             </div>
         </div>
@@ -275,5 +299,39 @@ document.getElementById('certForm')?.addEventListener('submit', function() {
     document.getElementById('submitBtn').style.display = 'none';
     document.getElementById('loading').style.display = 'block';
 });
+
+// Share buttons
+(function() {
+    const cifraVietii = "{{ result.cifra_vietii if result else '' }}";
+    const arhetip = "{{ result.arhetip if result else '' }}";
+    const prenume = "{{ result.prenume if result else '' }}";
+    const siteUrl = window.location.origin;
+
+    if (!cifraVietii) return;
+
+    const shareText = prenume
+        ? `✦ ${prenume} are Cifra Vieții ${cifraVietii} — ${arhetip}! Descoperă și tu harta sufletului tău pe GSIF.`
+        : `✦ Cifra mea a Vieții este ${cifraVietii} — ${arhetip}! Descoperă și tu harta sufletului tău.`;
+    const shareUrl = `${siteUrl}/genereaza`;
+
+    const waBtn = document.getElementById('shareWhatsapp');
+    if (waBtn) waBtn.href = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
+
+    const fbBtn = document.getElementById('shareFacebook');
+    if (fbBtn) fbBtn.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
+
+    const tgBtn = document.getElementById('shareTelegram');
+    if (tgBtn) tgBtn.href = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
+
+    const copyBtn = document.getElementById('shareCopy');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                copyBtn.textContent = '✅ Copiat!';
+                setTimeout(() => { copyBtn.innerHTML = '🔗 Copiază link'; }, 2000);
+            });
+        });
+    }
+})();
 </script>
 {% endblock %}

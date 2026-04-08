@@ -4,6 +4,53 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}GSIF — Every Soul Has a Map{% endblock %}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.svg') }}">
+
+    <!-- SEO -->
+    <meta name="description" content="{% block meta_description %}Descoperă harta sufletului tău — Certificatul Numerologic al Vieții, calculat din data nașterii tale. Gratuit. Instant. Al tău pentru totdeauna.{% endblock %}">
+    <meta name="keywords" content="numerologie, certificat numerologic, cifra vietii, harta sufletului, GSIF, every soul has a map">
+    <meta name="author" content="Global Spiritual Identity Foundation (GSIF)">
+    <link rel="canonical" href="{{ request.url }}">
+
+    <!-- Open Graph (Facebook, WhatsApp, LinkedIn) -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="GSIF — Every Soul Has a Map">
+    <meta property="og:title" content="{% block og_title %}GSIF — Fiecare suflet vine pe lume cu o hartă sacră{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Generează gratuit Certificatul Numerologic al Vieții tale. Descoperă Cifra Vieții, Arhetipul Spiritual și Misiunea Sufletului tău.{% endblock %}">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:image" content="{{ request.host_url }}static/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:locale" content="ro_RO">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block tw_title %}GSIF — Every Soul Has a Map{% endblock %}">
+    <meta name="twitter:description" content="{% block tw_description %}Generează gratuit Certificatul Numerologic al Vieții tale. Cifra Vieții, Arhetip, Misiunea Sufletului.{% endblock %}">
+    <meta name="twitter:image" content="{{ request.host_url }}static/og-image.png">
+
+    <!-- Structured Data JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "GSIF — Certificatul Numerologic al Vieții",
+      "description": "Generează gratuit Certificatul Numerologic al Vieții tale din data nașterii.",
+      "url": "{{ request.host_url }}",
+      "applicationCategory": "LifestyleApplication",
+      "operatingSystem": "All",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "RON" },
+      "author": {
+        "@type": "Organization",
+        "name": "Global Spiritual Identity Foundation (GSIF)",
+        "url": "{{ request.host_url }}"
+      }
+    }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:ital,wght@0,300;0,400;0,700;1,300;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">

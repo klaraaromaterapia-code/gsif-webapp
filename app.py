@@ -377,7 +377,9 @@ def sitemap():
     """Sitemap XML pentru SEO."""
     from flask import Response
     pages = ['', '/certificat', '/genereaza', '/manifest', '/despre', '/contact']
-    base = SITE_URL.rstrip('/')
+    # Use request URL if SITE_URL is localhost (not configured)
+    configured = SITE_URL if 'localhost' not in SITE_URL else request.host_url.rstrip('/')
+    base = configured.rstrip('/')
     items = '\n'.join(
         f'  <url><loc>{base}{p}</loc><changefreq>weekly</changefreq><priority>{"1.0" if p == "" else "0.8"}</priority></url>'
         for p in pages

@@ -6,7 +6,7 @@ services:
     startCommand: gunicorn app:app
     envVars:
       - key: SITE_URL
-        value: https://everysoulhasamap.org
+        value: https://auris-6368-webapp.onrender.com
       - key: GSIF_SECRET_KEY
         generateValue: true
       - key: SMTP_HOST

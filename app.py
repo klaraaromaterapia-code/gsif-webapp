@@ -6,6 +6,8 @@ Web Application — Flask MVP
 
 import os
 import sys
+import json
+import threading
 import smtplib
 import logging
 from email.mime.multipart import MIMEMultipart
@@ -57,6 +59,30 @@ EMAIL_CONFIG = {
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger('gsif')
+
+# ── Counter persistent ───────────────────────────────
+# Pe Render (Linux) fișierul e în /tmp — persistă între cereri, resetat la redeploy.
+# COUNTER_SEED = numărul de start (setat în Render env vars).
+_COUNTER_SEED = int(os.environ.get('COUNTER_SEED', '1247'))
+_COUNTER_FILE = os.path.join('/tmp' if sys.platform != 'win32' else os.environ.get('TEMP', 'C:/Temp'), 'gsif_counter.json')
+_counter_lock = threading.Lock()
+
+def get_counter() -> int:
+    try:
+        with open(_COUNTER_FILE) as f:
+            return json.load(f).get('count', _COUNTER_SEED)
+    except Exception:
+        return _COUNTER_SEED
+
+def increment_counter() -> int:
+    with _counter_lock:
+        count = get_counter() + 1
+        try:
+            with open(_COUNTER_FILE, 'w') as f:
+                json.dump({'count': count}, f)
+        except Exception as e:
+            log.debug(f"Counter write skip: {e}")
+        return count
 
 # n8n webhook pentru automatizări (Telegram, email etc.)
 N8N_WEBHOOK_URL = os.environ.get(
@@ -170,7 +196,7 @@ def trimite_email_cu_certificat(dest_email: str, prenume: str, pdf_path: str, ci
 
 @app.route('/')
 def home():
-    return render_template('index.html')
+    return render_template('index.html', counter=get_counter())
 
 
 @app.route('/certificat')
@@ -306,6 +332,9 @@ def genereaza():
                 'maestru':      cv in (11, 22, 33),
             }
 
+            # Incrementează counter
+            increment_counter()
+
             # Loghează
             log.info(f"Certificat generat: {filename} | CV={cv} | Email={email or 'N/A'}")
 
@@ -400,6 +429,11 @@ def robots():
 @app.route('/api/health')
 def health():
     return jsonify({'status': 'ok', 'app': 'GSIF', 'version': '1.0'})
+
+
+@app.route('/api/counter')
+def counter_api():
+    return jsonify({'count': get_counter()})
 
 
 # ══════════════════════════════════════════════════════

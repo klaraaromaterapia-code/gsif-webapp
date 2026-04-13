@@ -274,17 +274,13 @@ def contact():
 
             # Trimite email dacă e configurat
             if EMAIL_CONFIG['username']:
-                try:
-                    msg = MIMEMultipart()
-                    msg['Subject'] = f"[GSIF Contact] {subject} — {name}"
-                    msg['From'] = EMAIL_CONFIG['from_email']
-                    msg['To'] = EMAIL_CONFIG['from_email']
-                    body = f"De la: {name} <{email}>\nSubiect: {subject}\n\n{message}"
-                    msg.attach(MIMEText(body, 'plain', 'utf-8'))
-                    with smtplib.SMTP(EMAIL_CONFIG['smtp_host'], EMAIL_CONFIG['smtp_port']) as s:
-                        s.starttls()
-                        s.login(EMAIL_CONFIG['username'], EMAIL_CONFIG['password'])
-                        s.sendmail(EMAIL_CONFIG['from_email'], EMAIL_CONFIG['from_email'], msg.as_string())
+    ok = send_email(name, email, subject, message)
+    if ok:
+        log.info("Email trimis cu succes.")
+    else:
+        log.error("Eroare la trimiterea emailului.")
+
+    
                 except Exception as e:
                     log.error(f"Eroare email contact: {e}")
 

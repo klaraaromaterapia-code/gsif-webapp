@@ -1,0 +1,125 @@
+{
+  "name": "GSIF Certificate Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "gsif-certificate",
+        "responseMode": "onReceived",
+        "responseData": "firstEntryJson",
+        "options": {}
+      },
+      "id": "a1b2c3d4-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "gsif-certificate"
+    },
+    {
+      "parameters": {
+        "chatId": "6148595336",
+        "text": "=🌟 *Nou Certificat GSIF!*\n\n👤 Prenume: *{{ $json.prenume }}*\n🔢 Cifra Vieții: *{{ $json.cifra_vietii }}*\n✨ Arhetip: _{{ $json.arhetip }}_\n📧 Email: {{ $json.email || '—' }}\n📄 Fișier: `{{ $json.filename }}`\n\n🌐 everysoulhasamap.org",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "e5f6g7h8-telegram",
+      "name": "Telegram Notificare",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [500, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "zgCbPrWiaOTC8PXq",
+          "name": "Telegram account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-email",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "i9j0k1l2-if",
+      "name": "Are Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [500, 480]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "=✦ Certificatul tău Numerologic — Cifra Vieții {{ $json.cifra_vietii }} · GSIF",
+        "emailType": "html",
+        "message": "=<div style=\"font-family:Georgia,serif;max-width:600px;margin:0 auto;\">\n  <div style=\"background:linear-gradient(135deg,#280f50,#3d1a7a);padding:30px;text-align:center;\">\n    <h1 style=\"color:#c9a84c;margin:0;letter-spacing:3px;\">✦ GSIF</h1>\n    <p style=\"color:rgba(255,255,255,0.7);margin:8px 0 0;font-style:italic;\">Every Soul Has a Map</p>\n  </div>\n  <div style=\"padding:30px;\">\n    <p>Dragă {{ $json.prenume }},</p>\n    <p>Certificatul tău Numerologic al Vieții este gata!</p>\n    <div style=\"background:#f8f5ff;border-left:3px solid #c9a84c;padding:16px;margin:20px 0;\">\n      <p style=\"margin:0;font-size:1.2rem;color:#280f50;\">Cifra Vieții: <strong>{{ $json.cifra_vietii }}</strong></p>\n      <p style=\"margin:4px 0 0;color:#5e3a9e;font-style:italic;\">{{ $json.arhetip }}</p>\n    </div>\n    <p style=\"text-align:center;margin-top:24px;\">\n      <a href=\"https://everysoulhasamap.org\" style=\"background:linear-gradient(135deg,#c9a84c,#e8c97a);color:#280f50;padding:12px 28px;border-radius:30px;text-decoration:none;font-weight:bold;\">Vizitează everysoulhasamap.org</a>\n    </p>\n  </div>\n</div>",
+        "options": {
+          "fromName": "GSIF — Every Soul Has a Map"
+        }
+      },
+      "id": "m3n4o5p6-gmail",
+      "name": "Email Confirmare",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [740, 400],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail-credential-id",
+          "name": "Gmail — klara.aromaterapia"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Telegram Notificare",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Are Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Are Email?": {
+      "main": [
+        [
+          {
+            "node": "Email Confirmare",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": ["gsif", "certificate", "automation"]
+}

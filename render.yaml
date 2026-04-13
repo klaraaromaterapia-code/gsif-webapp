@@ -6,14 +6,26 @@ services:
     startCommand: gunicorn app:app
     envVars:
       - key: SITE_URL
-        value: https://auris-6368-webapp.onrender.com
+        value: https://everysoulhasamap.org
       - key: GSIF_SECRET_KEY
         generateValue: true
+      # ── Email SMTP (Gmail) ────────────────────────
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT
         value: "587"
       - key: SMTP_USER
-        sync: false
+        value: klara.aromaterapia@gmail.com
       - key: SMTP_PASS
-        sync: false
+        sync: false   # setează manual în Render Dashboard → Environment
+      # ── Supabase Storage ──────────────────────────
+      - key: SUPABASE_URL
+        sync: false   # ex: https://xxxx.supabase.co
+      - key: SUPABASE_KEY
+        sync: false   # anon/public key din Supabase Settings → API
+      # ── n8n Cloud Webhook ─────────────────────────
+      - key: N8N_WEBHOOK_URL
+        value: https://aumatizari.app.n8n.cloud/webhook/gsif-certificate
+      # ── Counter seed ──────────────────────────────
+      - key: COUNTER_SEED
+        value: "1247"

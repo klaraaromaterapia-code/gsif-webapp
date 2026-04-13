@@ -16,7 +16,7 @@ from email.mime.base import MIMEBase
 from email import encoders
 from datetime import datetime
 from flask import (Flask, render_template, request, redirect,
-                   url_for, flash, send_file, jsonify)
+                   url_for, flash, send_file, jsonify, Response)
 
 # ── Fix encoding Windows ─────────────────────────────
 if sys.platform == 'win32':
@@ -42,6 +42,42 @@ app.secret_key = os.environ.get('GSIF_SECRET_KEY', 'gsif-every-soul-has-a-map-20
 
 # URL-ul public al site-ului (setat în env pe Render, fallback local)
 SITE_URL = os.environ.get('SITE_URL', 'http://localhost:5000')
+
+# ── Supabase Storage ─────────────────────────────────
+SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY', '')
+SUPABASE_BUCKET = 'certificates'
+_sb_client = None
+
+def _get_supabase():
+    global _sb_client
+    if _sb_client is None and SUPABASE_URL and SUPABASE_KEY:
+        try:
+            from supabase import create_client
+            _sb_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        except Exception as e:
+            log.warning(f"Supabase client init error: {e}")
+    return _sb_client
+
+def upload_pdf_supabase(pdf_path: str, filename: str) -> str | None:
+    """Urcă PDF-ul în Supabase Storage. Returnează URL public sau None."""
+    sb = _get_supabase()
+    if not sb:
+        return None
+    try:
+        with open(pdf_path, 'rb') as f:
+            data = f.read()
+        remote_path = f'pdfs/{filename}'
+        sb.storage.from_(SUPABASE_BUCKET).upload(
+            remote_path, data,
+            file_options={'content-type': 'application/pdf', 'upsert': 'true'}
+        )
+        public_url = sb.storage.from_(SUPABASE_BUCKET).get_public_url(remote_path)
+        log.info(f"Supabase upload OK → {public_url}")
+        return public_url
+    except Exception as e:
+        log.error(f"Supabase upload error: {e}")
+        return None
 
 # ── Configurare ──────────────────────────────────────
 CERTS_DIR = os.path.join(BASE_DIR, 'certificates')
@@ -309,9 +345,10 @@ def genereaza():
             if email:
                 email_sent = trimite_email_cu_certificat(email, prenume, pdf_path, cifre)
 
-            # Construiește URL de download
+            # Upload la Supabase Storage (persistent) sau fallback local
             filename = os.path.basename(pdf_path)
-            download_url = url_for('download_cert', filename=filename)
+            supabase_url = upload_pdf_supabase(pdf_path, filename)
+            download_url = supabase_url if supabase_url else url_for('download_cert', filename=filename)
 
             result = {
                 'prenume':      prenume,
@@ -356,15 +393,25 @@ def genereaza():
 
 @app.route('/download/<filename>')
 def download_cert(filename):
-    """Descarcă un certificat PDF generat."""
-    # Sanitizare nume fișier
+    """Descarcă un certificat PDF — local sau din Supabase."""
     filename = os.path.basename(filename)
     filepath = os.path.join(CERTS_DIR, filename)
-    if not os.path.exists(filepath):
-        flash('Certificatul nu a fost găsit. Te rugăm să generezi din nou.', 'error')
-        return redirect(url_for('genereaza'))
-    return send_file(filepath, as_attachment=True, download_name=filename,
-                     mimetype='application/pdf')
+
+    if os.path.exists(filepath):
+        return send_file(filepath, as_attachment=True, download_name=filename,
+                         mimetype='application/pdf')
+
+    # Fișierul nu e local (redeploy Render) — încearcă Supabase
+    sb = _get_supabase()
+    if sb:
+        try:
+            public_url = sb.storage.from_(SUPABASE_BUCKET).get_public_url(f'pdfs/{filename}')
+            return redirect(public_url)
+        except Exception as e:
+            log.error(f"Supabase fallback download error: {e}")
+
+    flash('Certificatul nu a fost găsit. Te rugăm să generezi din nou.', 'error')
+    return redirect(url_for('genereaza'))
 
 
 @app.route('/api/calculeaza', methods=['POST'])
@@ -404,7 +451,6 @@ def api_calculeaza():
 @app.route('/sitemap.xml')
 def sitemap():
     """Sitemap XML pentru SEO."""
-    from flask import Response
     pages = ['', '/certificat', '/genereaza', '/manifest', '/despre', '/contact']
     # Use request URL if SITE_URL is localhost (not configured)
     configured = SITE_URL if 'localhost' not in SITE_URL else request.host_url.rstrip('/')

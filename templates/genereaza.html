@@ -19,13 +19,23 @@
 .cifra-card { background:var(--bg-section); border-radius:10px; padding:0.75rem; text-align:center; }
 .cifra-card .num { font-family:'Cinzel',serif; font-size:1.5rem; color:var(--gold); display:block; }
 .cifra-card .label { font-size:0.72rem; color:var(--text-light); letter-spacing:1px; text-transform:uppercase; margin-top:0.2rem; }
+
+/* Pricing card */
+.pricing-card { background:linear-gradient(135deg,rgba(40,15,80,0.05),rgba(201,168,76,0.08)); border:1px solid rgba(201,168,76,0.35); border-radius:16px; padding:2rem 2rem 1.5rem; margin-bottom:2rem; text-align:center; }
+.pricing-badge { display:inline-block; background:rgba(201,168,76,0.15); color:var(--gold); font-size:0.72rem; letter-spacing:2px; text-transform:uppercase; padding:0.3rem 1rem; border-radius:20px; margin-bottom:1rem; }
+.pricing-amount { font-family:'Cinzel',serif; font-size:3rem; font-weight:700; color:var(--violet); line-height:1; margin-bottom:0.3rem; }
+.pricing-amount span { font-size:1.5rem; vertical-align:top; margin-top:0.5rem; display:inline-block; }
+.pricing-once { font-size:0.8rem; color:var(--text-light); letter-spacing:1px; margin-bottom:1.2rem; }
+.pricing-features { list-style:none; padding:0; margin:0 0 1.2rem; text-align:left; display:inline-block; }
+.pricing-features li { font-size:0.88rem; color:var(--text-mid); padding:0.3rem 0; }
+.pricing-features li::before { content:"✦ "; color:var(--gold); }
 </style>
 {% endblock %}
 
 {% block content %}
 
 <div class="page-hero" style="padding-bottom:50px;">
-    <div class="hero-badge">Gratuit · Instant · Personalizat</div>
+    <div class="hero-badge">€20 · Instant · Personalizat</div>
     <h1>Generează <span>Certificatul Tău</span></h1>
     <p>Introdu data nașterii și descoperă harta sufletului tău</p>
 </div>
@@ -41,6 +51,24 @@
         </div>
 
         {% if not result %}
+
+        <!-- PRICING CARD -->
+        <div class="pricing-card">
+            <div class="pricing-badge">✦ O singură plată · Fără abonament</div>
+            <div class="pricing-amount"><span>€</span>20</div>
+            <p class="pricing-once">plată unică · acces instant</p>
+            <ul class="pricing-features">
+                <li>Cifra Vieții + Arhetip Spiritual</li>
+                <li>31 de secțiuni spirituale personalizate</li>
+                <li>Chakra dominantă la naștere</li>
+                <li>Cristale sacre &amp; Culori de putere</li>
+                <li>Misiunea Sufletului + Afirmație personalizată</li>
+                <li>An Personal 2026 — mesaj &amp; energie</li>
+                <li>PDF de înaltă calitate, descărcabil instant</li>
+                <li>Opțional: livrat și pe email</li>
+            </ul>
+        </div>
+
         <!-- FORMULARUL -->
         <div class="form-card">
             <h2 class="form-title">✦ Harta Sufletului Tău</h2>
@@ -97,7 +125,11 @@
                 </div>
 
                 <button type="submit" class="btn-submit" id="submitBtn">
-                    ✦ Generează Certificatul Meu
+                    {% if stripe_enabled %}
+                        🔒 Cumpără &amp; Generează — €{{ price }}
+                    {% else %}
+                        ✦ Generează Certificatul Meu
+                    {% endif %}
                 </button>
 
                 <div class="loading" id="loading">

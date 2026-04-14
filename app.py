@@ -40,14 +40,20 @@ from certificat import (
 app = Flask(__name__)
 app.secret_key = os.environ.get('GSIF_SECRET_KEY', 'gsif-every-soul-has-a-map-2026')
 
-# URL-ul public al site-ului (setat în env pe Render, fallback local)
+# URL-ul public al site-ului (setat în env pe Render)
 SITE_URL = os.environ.get('SITE_URL', 'http://localhost:5000')
 
+# ── Stripe ──────────────────────────────────────────
+# Setează STRIPE_SECRET_KEY în Render env vars (sk_live_...)
+# Fără această cheie, generarea funcționează direct (mod dev)
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
+STRIPE_PRICE_EUR  = int(os.environ.get('STRIPE_PRICE_EUR', '20'))
+
 # ── Supabase Storage ─────────────────────────────────
-SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
-SUPABASE_KEY = os.environ.get('SUPABASE_KEY', '')
+SUPABASE_URL    = os.environ.get('SUPABASE_URL', '')
+SUPABASE_KEY    = os.environ.get('SUPABASE_KEY', '')
 SUPABASE_BUCKET = 'certificates'
-_sb_client = None
+_sb_client      = None
 
 def _get_supabase():
     global _sb_client
@@ -83,12 +89,11 @@ def upload_pdf_supabase(pdf_path: str, filename: str) -> str | None:
 CERTS_DIR = os.path.join(BASE_DIR, 'certificates')
 os.makedirs(CERTS_DIR, exist_ok=True)
 
-# Email — configurează cu datele tale sau lasă gol
 EMAIL_CONFIG = {
     'smtp_host':  os.environ.get('SMTP_HOST', 'smtp.gmail.com'),
     'smtp_port':  int(os.environ.get('SMTP_PORT', 587)),
-    'username':   os.environ.get('SMTP_USER', ''),       # ex: contact@gsif.org
-    'password':   os.environ.get('SMTP_PASS', ''),       # App Password Gmail
+    'username':   os.environ.get('SMTP_USER', ''),
+    'password':   os.environ.get('SMTP_PASS', ''),
     'from_name':  'GSIF — Every Soul Has a Map',
     'from_email': os.environ.get('SMTP_USER', 'contact@gsif.org'),
 }
@@ -97,8 +102,6 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger('gsif')
 
 # ── Counter persistent ───────────────────────────────
-# Pe Render (Linux) fișierul e în /tmp — persistă între cereri, resetat la redeploy.
-# COUNTER_SEED = numărul de start (setat în Render env vars).
 _COUNTER_SEED = int(os.environ.get('COUNTER_SEED', '1247'))
 _COUNTER_FILE = os.path.join('/tmp' if sys.platform != 'win32' else os.environ.get('TEMP', 'C:/Temp'), 'gsif_counter.json')
 _counter_lock = threading.Lock()
@@ -120,12 +123,12 @@ def increment_counter() -> int:
             log.debug(f"Counter write skip: {e}")
         return count
 
-# n8n webhook pentru automatizări (Telegram, email etc.)
+# n8n webhook — setează N8N_WEBHOOK_URL în Render env vars
+# ex: https://gsif-n8n.onrender.com/webhook/gsif-certificate
 N8N_WEBHOOK_URL = os.environ.get(
     'N8N_WEBHOOK_URL',
     'http://localhost:5678/webhook/gsif-certificate'
 )
-
 
 def _notifica_n8n(data: dict):
     """Trimite date către n8n webhook async (non-blocking)."""
@@ -151,13 +154,12 @@ def trimite_email_cu_certificat(dest_email: str, prenume: str, pdf_path: str, ci
         log.info("Email nesolicitat — SMTP neconfigurat.")
         return False
 
-    cv = cifre.get('cifra_vietii')
+    cv      = cifre.get('cifra_vietii')
     arhetip = ARHETIPURI.get(cv, str(cv))
     misiune = MISIUNI.get(cv, '')
-
-    salut = f"Dragă {prenume}," if prenume else "Bună ziua,"
-
+    salut   = f"Dragă {prenume}," if prenume else "Bună ziua,"
     site_url = SITE_URL
+
     html_body = f"""
     <div style="font-family:Georgia,serif;max-width:600px;margin:0 auto;background:#fff;">
       <div style="background:linear-gradient(135deg,#280f50,#3d1a7a);padding:40px;text-align:center;">
@@ -198,12 +200,9 @@ def trimite_email_cu_certificat(dest_email: str, prenume: str, pdf_path: str, ci
     try:
         msg = MIMEMultipart('alternative')
         msg['Subject'] = f"✦ Certificatul tău Numerologic — Cifra Vieții {cv} · GSIF"
-        msg['From'] = f"{EMAIL_CONFIG['from_name']} <{EMAIL_CONFIG['from_email']}>"
-        msg['To'] = dest_email
-
+        msg['From']    = f"{EMAIL_CONFIG['from_name']} <{EMAIL_CONFIG['from_email']}>"
+        msg['To']      = dest_email
         msg.attach(MIMEText(html_body, 'html', 'utf-8'))
-
-        # Atașează PDF
         with open(pdf_path, 'rb') as f:
             part = MIMEBase('application', 'octet-stream')
             part.set_payload(f.read())
@@ -211,19 +210,87 @@ def trimite_email_cu_certificat(dest_email: str, prenume: str, pdf_path: str, ci
         pdf_filename = os.path.basename(pdf_path)
         part.add_header('Content-Disposition', f'attachment; filename="{pdf_filename}"')
         msg.attach(part)
-
         with smtplib.SMTP(EMAIL_CONFIG['smtp_host'], EMAIL_CONFIG['smtp_port']) as server:
             server.ehlo()
             server.starttls()
             server.login(EMAIL_CONFIG['username'], EMAIL_CONFIG['password'])
             server.sendmail(EMAIL_CONFIG['from_email'], dest_email, msg.as_string())
-
         log.info(f"Email trimis la {dest_email}")
         return True
-
     except Exception as e:
         log.error(f"Eroare trimitere email: {e}")
         return False
+
+
+def send_email(name: str, email: str, subject: str, message: str) -> bool:
+    """Trimite un mesaj de contact la adresa admin."""
+    try:
+        msg = MIMEMultipart()
+        msg['Subject'] = f"[GSIF Contact] {subject} — {name}"
+        msg['From']    = EMAIL_CONFIG['from_email']
+        msg['To']      = EMAIL_CONFIG['from_email']
+        body = f"De la: {name} <{email}>\nSubiect: {subject}\n\n{message}"
+        msg.attach(MIMEText(body, 'plain', 'utf-8'))
+        with smtplib.SMTP(EMAIL_CONFIG['smtp_host'], EMAIL_CONFIG['smtp_port']) as s:
+            s.starttls()
+            s.login(EMAIL_CONFIG['username'], EMAIL_CONFIG['password'])
+            s.sendmail(EMAIL_CONFIG['from_email'], EMAIL_CONFIG['from_email'], msg.as_string())
+        return True
+    except Exception as e:
+        log.error(f"Eroare email contact: {e}")
+        return False
+
+
+def _genera_certificat_pentru(prenume: str, data_nastere: str, cnp: str, email: str) -> dict:
+    """Generează certificatul PDF și returnează result dict. Raise-ează la eroare."""
+    zi, luna, an = map(int, data_nastere.split('.'))
+    pdf_path = genereaza_certificat(zi, luna, an, cnp, output_dir=CERTS_DIR)
+
+    cv  = calculeaza_cifra_vietii(zi, luna, an)
+    czz = calculeaza_cifra_zilei(zi)
+    cl  = calculeaza_cifra_lunii(luna)
+    ca  = calculeaza_cifra_anului(an)
+    cc  = calculeaza_contract(cnp)
+    ap  = calculeaza_an_personal(zi, luna)
+
+    cifre = {'cifra_vietii': cv, 'cifra_zi': czz, 'cifra_luna': cl,
+             'cifra_an': ca, 'contract': cc, 'an_personal': ap}
+
+    email_sent = False
+    if email:
+        email_sent = trimite_email_cu_certificat(email, prenume, pdf_path, cifre)
+
+    filename     = os.path.basename(pdf_path)
+    supabase_url = upload_pdf_supabase(pdf_path, filename)
+    download_url = supabase_url if supabase_url else url_for('download_cert', filename=filename)
+
+    increment_counter()
+    log.info(f"Certificat generat: {filename} | CV={cv} | Email={email or 'N/A'}")
+
+    _notifica_n8n({
+        'prenume': prenume, 'cifra_vietii': cv,
+        'arhetip': ARHETIPURI.get(cv, ''), 'email': email,
+        'filename': filename,
+    })
+
+    return {
+        'prenume':      prenume,
+        'cifra_vietii': cv,
+        'arhetip':      ARHETIPURI.get(cv, str(cv)),
+        'misiune':      MISIUNI.get(cv, ''),
+        'cifra_zi':     czz,
+        'cifra_luna':   cl,
+        'cifra_an':     ca,
+        'contract':     cc,
+        'an_personal':  ap,
+        'email_sent':   email_sent,
+        'download_url': download_url,
+        'element':      ELEMENTE.get(cv, ''),
+        'chakra':       CHAKRE.get(cv, ''),
+        'cristale':     CRISTALE.get(cv, ''),
+        'culori':       CULORI.get(cv, ''),
+        'maestru':      cv in (11, 22, 33),
+    }
 
 
 # ══════════════════════════════════════════════════════
@@ -260,11 +327,9 @@ def contact():
         message = request.form.get('message', '').strip()
 
         if name and email and message:
-            # Loghează mesajul
             log.info(f"[CONTACT] De la: {name} <{email}> | Subiect: {subject}")
             log.info(f"[CONTACT] Mesaj: {message[:200]}")
 
-            # Salvează în fișier local (până la configurare email)
             contacts_file = os.path.join(BASE_DIR, 'contacts.txt')
             with open(contacts_file, 'a', encoding='utf-8') as f:
                 f.write(f"\n{'='*60}\n")
@@ -272,21 +337,11 @@ def contact():
                 f.write(f"Nume: {name}\nEmail: {email}\nSubiect: {subject}\n")
                 f.write(f"Mesaj:\n{message}\n")
 
-            # Trimite email dacă e configurat
             if EMAIL_CONFIG['username']:
-    ok = send_email(name, email, subject, message)
-    if ok:
-        log.info("Email trimis cu succes.")
-    else:
-        log.error("Eroare la trimiterea emailului.")
-
-    
-                except Exception as e:
-                    log.error(f"Eroare email contact: {e}")
+                send_email(name, email, subject, message)
 
             contact_sent = True
             flash('Mesajul tău a fost trimis! Te vom contacta în curând. ✦', 'success')
-
         else:
             flash('Te rugăm să completezi toate câmpurile obligatorii.', 'error')
 
@@ -295,7 +350,7 @@ def contact():
 
 @app.route('/genereaza', methods=['GET', 'POST'])
 def genereaza():
-    result = None
+    result    = None
     form_data = None
 
     if request.method == 'POST':
@@ -313,78 +368,100 @@ def genereaza():
             assert 1 <= zi <= 31 and 1 <= luna <= 12 and 1900 <= an <= 2026
         except Exception:
             flash('Format dată incorect. Folosește ZZ.LL.AAAA (ex: 01.07.1985)', 'error')
-            return render_template('genereaza.html', result=None, form_data=form_data)
+            return render_template('genereaza.html', result=None, form_data=form_data,
+                                   stripe_enabled=bool(STRIPE_SECRET_KEY), price=STRIPE_PRICE_EUR)
 
         if len(cnp.replace(' ', '')) < 4:
             flash('CNP-ul trebuie să aibă cel puțin 4 cifre.', 'error')
-            return render_template('genereaza.html', result=None, form_data=form_data)
+            return render_template('genereaza.html', result=None, form_data=form_data,
+                                   stripe_enabled=bool(STRIPE_SECRET_KEY), price=STRIPE_PRICE_EUR)
 
+        # ── Stripe Checkout (activ când STRIPE_SECRET_KEY e setat) ──────────
+        if STRIPE_SECRET_KEY:
+            try:
+                import stripe as _stripe
+                _stripe.api_key = STRIPE_SECRET_KEY
+                site = SITE_URL if 'localhost' not in SITE_URL else request.host_url.rstrip('/')
+                checkout_session = _stripe.checkout.Session.create(
+                    payment_method_types=['card'],
+                    line_items=[{
+                        'price_data': {
+                            'currency': 'eur',
+                            'product_data': {
+                                'name': 'Certificatul Numerologic al Vieții',
+                                'description': 'Harta spirituală personalizată — GSIF · Every Soul Has a Map',
+                            },
+                            'unit_amount': STRIPE_PRICE_EUR * 100,
+                        },
+                        'quantity': 1,
+                    }],
+                    mode='payment',
+                    success_url=f'{site}/payment/success?session_id={{CHECKOUT_SESSION_ID}}',
+                    cancel_url=f'{site}/payment/cancel',
+                    customer_email=email or None,
+                    metadata={
+                        'prenume':      prenume[:400],
+                        'data_nastere': data_nastere,
+                        'cnp':          cnp[:400],
+                        'email':        email[:400] if email else '',
+                    }
+                )
+                return redirect(checkout_session.url)
+            except Exception as e:
+                log.error(f"Stripe error: {e}")
+                flash('Eroare la procesarea plății. Te rugăm să încerci din nou.', 'error')
+                return render_template('genereaza.html', result=None, form_data=form_data,
+                                       stripe_enabled=True, price=STRIPE_PRICE_EUR)
+
+        # ── Generare directă (local / fără Stripe) ─────────────────────────
         try:
-            # Generează PDF
-            pdf_path = genereaza_certificat(zi, luna, an, cnp, output_dir=CERTS_DIR)
-
-            # Calculează cifre pentru afișare
-            cv  = calculeaza_cifra_vietii(zi, luna, an)
-            czz = calculeaza_cifra_zilei(zi)
-            cl  = calculeaza_cifra_lunii(luna)
-            ca  = calculeaza_cifra_anului(an)
-            cc  = calculeaza_contract(cnp)
-            ap  = calculeaza_an_personal(zi, luna)
-
-            cifre = {
-                'cifra_vietii': cv, 'cifra_zi': czz, 'cifra_luna': cl,
-                'cifra_an': ca, 'contract': cc, 'an_personal': ap
-            }
-
-            # Trimite pe email dacă completat
-            email_sent = False
-            if email:
-                email_sent = trimite_email_cu_certificat(email, prenume, pdf_path, cifre)
-
-            # Upload la Supabase Storage (persistent) sau fallback local
-            filename = os.path.basename(pdf_path)
-            supabase_url = upload_pdf_supabase(pdf_path, filename)
-            download_url = supabase_url if supabase_url else url_for('download_cert', filename=filename)
-
-            result = {
-                'prenume':      prenume,
-                'cifra_vietii': cv,
-                'arhetip':      ARHETIPURI.get(cv, str(cv)),
-                'misiune':      MISIUNI.get(cv, ''),
-                'cifra_zi':     czz,
-                'cifra_luna':   cl,
-                'cifra_an':     ca,
-                'contract':     cc,
-                'an_personal':  ap,
-                'email_sent':   email_sent,
-                'download_url': download_url,
-                'element':      ELEMENTE.get(cv, ''),
-                'chakra':       CHAKRE.get(cv, ''),
-                'cristale':     CRISTALE.get(cv, ''),
-                'culori':       CULORI.get(cv, ''),
-                'maestru':      cv in (11, 22, 33),
-            }
-
-            # Incrementează counter
-            increment_counter()
-
-            # Loghează
-            log.info(f"Certificat generat: {filename} | CV={cv} | Email={email or 'N/A'}")
-
-            # Notifică n8n webhook (Telegram + automații)
-            _notifica_n8n({
-                'prenume': prenume, 'cifra_vietii': cv,
-                'arhetip': ARHETIPURI.get(cv, ''), 'email': email,
-                'filename': filename,
-            })
-
-            form_data = None  # nu mai afișa formularul după succes
-
+            result    = _genera_certificat_pentru(prenume, data_nastere, cnp, email)
+            form_data = None
         except Exception as e:
             log.error(f"Eroare generare certificat: {e}", exc_info=True)
-            flash(f'A apărut o eroare la generarea certificatului. Te rugăm să încerci din nou.', 'error')
+            flash('A apărut o eroare la generarea certificatului. Te rugăm să încerci din nou.', 'error')
 
-    return render_template('genereaza.html', result=result, form_data=form_data)
+    return render_template('genereaza.html', result=result, form_data=form_data,
+                           stripe_enabled=bool(STRIPE_SECRET_KEY), price=STRIPE_PRICE_EUR)
+
+
+# ── Plată Stripe — succes ────────────────────────────
+@app.route('/payment/success')
+def payment_success():
+    session_id = request.args.get('session_id', '')
+    if not session_id or not STRIPE_SECRET_KEY:
+        return redirect(url_for('genereaza'))
+    try:
+        import stripe as _stripe
+        _stripe.api_key = STRIPE_SECRET_KEY
+        cs = _stripe.checkout.Session.retrieve(session_id)
+
+        if cs.payment_status != 'paid':
+            flash('Plata nu a fost finalizată. Contactează-ne dacă ai fost debitat.', 'error')
+            return redirect(url_for('genereaza'))
+
+        meta         = cs.metadata or {}
+        prenume      = meta.get('prenume', '')
+        data_nastere = meta.get('data_nastere', '')
+        cnp          = meta.get('cnp', '')
+        email        = meta.get('email', '')
+
+        result = _genera_certificat_pentru(prenume, data_nastere, cnp, email)
+        flash('Plată confirmată ✦ Certificatul tău a fost generat!', 'success')
+        return render_template('genereaza.html', result=result, form_data=None,
+                               stripe_enabled=True, price=STRIPE_PRICE_EUR)
+
+    except Exception as e:
+        log.error(f"Payment success error: {e}", exc_info=True)
+        flash('Plata a fost înregistrată dar a apărut o eroare la generare. Contactează-ne la contact@everysoulhasamap.org', 'error')
+        return redirect(url_for('genereaza'))
+
+
+# ── Plată Stripe — anulare ───────────────────────────
+@app.route('/payment/cancel')
+def payment_cancel():
+    flash('Plata a fost anulată. Poți reîncerca oricând. ✦', 'error')
+    return redirect(url_for('genereaza'))
 
 
 @app.route('/download/<filename>')
@@ -397,7 +474,6 @@ def download_cert(filename):
         return send_file(filepath, as_attachment=True, download_name=filename,
                          mimetype='application/pdf')
 
-    # Fișierul nu e local (redeploy Render) — încearcă Supabase
     sb = _get_supabase()
     if sb:
         try:
@@ -413,9 +489,9 @@ def download_cert(filename):
 @app.route('/api/calculeaza', methods=['POST'])
 def api_calculeaza():
     """API endpoint pentru calcul cifre numerologice în timp real."""
-    data = request.get_json(silent=True) or {}
+    data     = request.get_json(silent=True) or {}
     data_str = data.get('data_nastere', '')
-    cnp = data.get('cnp', '')
+    cnp      = data.get('cnp', '')
 
     try:
         zi, luna, an = map(int, data_str.split('.'))
@@ -427,18 +503,18 @@ def api_calculeaza():
         ap  = calculeaza_an_personal(zi, luna)
 
         return jsonify({
-            'success': True,
+            'success':      True,
             'cifra_vietii': cv,
-            'arhetip': ARHETIPURI.get(cv, ''),
-            'misiune': MISIUNI.get(cv, ''),
-            'cifra_zi': czz,
-            'cifra_luna': cl,
-            'cifra_an': ca,
-            'contract': cc,
-            'an_personal': ap,
-            'maestru': cv in (11, 22, 33),
-            'element': ELEMENTE.get(cv, ''),
-            'chakra': CHAKRE.get(cv, ''),
+            'arhetip':      ARHETIPURI.get(cv, ''),
+            'misiune':      MISIUNI.get(cv, ''),
+            'cifra_zi':     czz,
+            'cifra_luna':   cl,
+            'cifra_an':     ca,
+            'contract':     cc,
+            'an_personal':  ap,
+            'maestru':      cv in (11, 22, 33),
+            'element':      ELEMENTE.get(cv, ''),
+            'chakra':       CHAKRE.get(cv, ''),
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 400
@@ -446,11 +522,9 @@ def api_calculeaza():
 
 @app.route('/sitemap.xml')
 def sitemap():
-    """Sitemap XML pentru SEO."""
     pages = ['', '/certificat', '/genereaza', '/manifest', '/despre', '/contact']
-    # Use request URL if SITE_URL is localhost (not configured)
     configured = SITE_URL if 'localhost' not in SITE_URL else request.host_url.rstrip('/')
-    base = configured.rstrip('/')
+    base  = configured.rstrip('/')
     items = '\n'.join(
         f'  <url><loc>{base}{p}</loc><changefreq>weekly</changefreq><priority>{"1.0" if p == "" else "0.8"}</priority></url>'
         for p in pages
@@ -470,7 +544,8 @@ def robots():
 
 @app.route('/api/health')
 def health():
-    return jsonify({'status': 'ok', 'app': 'GSIF', 'version': '1.0'})
+    return jsonify({'status': 'ok', 'app': 'GSIF', 'version': '1.0',
+                    'stripe': bool(STRIPE_SECRET_KEY)})
 
 
 @app.route('/api/counter')
@@ -483,7 +558,7 @@ def counter_api():
 # ══════════════════════════════════════════════════════
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
+    port  = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('DEBUG', 'true').lower() == 'true'
     print()
     print("═" * 55)
@@ -492,6 +567,7 @@ if __name__ == '__main__':
     print("═" * 55)
     print(f"  URL local:   http://localhost:{port}")
     print(f"  Generează:   http://localhost:{port}/genereaza")
+    print(f"  Stripe:      {'ACTIV' if STRIPE_SECRET_KEY else 'DEZACTIVAT (mod dev)'}")
     print(f"  Debug:       {debug}")
     print("═" * 55)
     print()

@@ -574,24 +574,36 @@ def stripe_webhook():
             event = _stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
         else:
             # Fără secret (dev) — parsăm direct dar nu verificăm semnătura
-            import json
-            event = _stripe.Event.construct_from(json.loads(payload), _stripe.api_key)
+            import json as _json
+            event = _stripe.Event.construct_from(
+                _json.loads(payload), _stripe.api_key
+            ) if hasattr(_stripe.Event, 'construct_from') else _stripe.Webhook.construct_event(
+                payload, sig_header or 'none', 'whsec_test'
+            )
 
-        if event['type'] == 'checkout.session.completed':
-            cs = event['data']['object']
-            if cs.get('payment_status') != 'paid':
+        # stripe-python v5+ folosește acces prin atribute, nu dict
+        event_type = getattr(event, 'type', None) or event.get('type', '')
+        if event_type == 'checkout.session.completed':
+            cs = getattr(getattr(event, 'data', None), 'object', None) or event['data']['object']
+            payment_status = getattr(cs, 'payment_status', None) or cs.get('payment_status', '')
+            if payment_status != 'paid':
                 return jsonify({'status': 'ignored'}), 200
 
-            meta = cs.get('metadata') or {}
-            prenume      = meta.get('prenume', '')
-            data_nastere = meta.get('data_nastere', '')
-            cnp          = meta.get('cnp', '')
-            email        = meta.get('email', '')
+            meta = getattr(cs, 'metadata', None) or {}
+            def _m(key):
+                if hasattr(meta, key): return getattr(meta, key) or ''
+                if hasattr(meta, 'get'): return meta.get(key, '') or ''
+                return ''
+            prenume      = _m('prenume')
+            data_nastere = _m('data_nastere')
+            cnp          = _m('cnp')
+            email        = _m('email')
 
             if data_nastere and cnp:
                 try:
                     _genera_certificat_pentru(prenume, data_nastere, cnp, email)
-                    log.info(f"Webhook: certificat generat pentru {prenume or 'anonim'} | session={cs.get('id','')[:20]}")
+                    session_id = getattr(cs, 'id', '') or cs.get('id', '')
+                    log.info(f"Webhook: certificat generat pentru {prenume or 'anonim'} | session={str(session_id)[:20]}")
                 except Exception as e:
                     log.error(f"Webhook: eroare generare: {e}", exc_info=True)
 

@@ -10,9 +10,12 @@ from datetime import datetime
 import os
 import sys
 
-FONT_REGULAR = "C:/Windows/Fonts/arial.ttf"
-FONT_BOLD    = "C:/Windows/Fonts/arialbd.ttf"
-FONT_ITALIC  = "C:/Windows/Fonts/ariali.ttf"
+# Fonturi Arial incluse în proiect — cross-platform (Render/Linux + Windows)
+_FONTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "fonts")
+FONT_REGULAR = os.path.join(_FONTS_DIR, "arial.ttf")
+FONT_BOLD    = os.path.join(_FONTS_DIR, "arialbd.ttf")
+FONT_ITALIC  = os.path.join(_FONTS_DIR, "ariali.ttf")
+FONT_FACE    = "Arial"
 
 # ─────────────────────────────────────────────
 #  DATE BAZA — TABELE NUMEROLOGICE
@@ -231,13 +234,12 @@ class CertificatPDF(FPDF):
         super().__init__(orientation='P', unit='mm', format='A4')
         self.set_margins(20, 20, 20)
         self.set_auto_page_break(auto=True, margin=25)
-        self.add_font("Arial",  "",  FONT_REGULAR)
-        self.add_font("Arial",  "B", FONT_BOLD)
-        self.add_font("Arial",  "I", FONT_ITALIC)
+        self.add_font(FONT_FACE, "",  FONT_REGULAR)
+        self.add_font(FONT_FACE, "B", FONT_BOLD)
+        self.add_font(FONT_FACE, "I", FONT_ITALIC)
 
     def header(self):
-        # Linie aurie sus
-        self.set_draw_color(201, 168, 76)  # auriu
+        self.set_draw_color(201, 168, 76)
         self.set_line_width(1.0)
         self.line(15, 12, 195, 12)
         self.set_line_width(0.3)
@@ -248,15 +250,15 @@ class CertificatPDF(FPDF):
         self.set_draw_color(201, 168, 76)
         self.set_line_width(0.3)
         self.line(15, -15, 195, -15)
-        self.set_font('Arial', 'I', 7)
+        self.set_font(FONT_FACE, 'I', 7)
         self.set_text_color(150, 130, 80)
-        self.cell(0, 5, 'Global Spiritual Identity Foundation (GSIF)  |  "Every Soul Has a Map"  |  gsif.org', align='C')
+        self.cell(0, 5, 'Global Spiritual Identity Foundation (GSIF)  |  "Every Soul Has a Map"  |  everysoulhasamap.org', align='C')
 
     def titlu_sectiune(self, text):
         self.ln(4)
-        self.set_fill_color(40, 15, 80)  # violet inchis
-        self.set_text_color(201, 168, 76)  # auriu
-        self.set_font('Arial', 'B', 9)
+        self.set_fill_color(40, 15, 80)
+        self.set_text_color(201, 168, 76)
+        self.set_font(FONT_FACE, 'B', 9)
         self.cell(0, 7, f'  {text.upper()}', fill=True, ln=True)
         self.ln(2)
         self.set_text_color(30, 30, 30)
@@ -264,17 +266,16 @@ class CertificatPDF(FPDF):
     def rand_info(self, eticheta, valoare, bold_val=True):
         lbl_w = 62
         val_w = 108
-        self.set_font('Arial', 'B', 8)
+        self.set_font(FONT_FACE, 'B', 8)
         self.set_text_color(80, 60, 120)
         self.cell(lbl_w, 6, eticheta + ':', ln=False)
-        self.set_font('Arial', 'B' if bold_val else '', 8)
+        self.set_font(FONT_FACE, 'B' if bold_val else '', 8)
         self.set_text_color(20, 20, 20)
-        x_save = self.get_x()
         self.multi_cell(val_w, 6, valoare)
         self.set_x(20)
 
     def text_bloc(self, text, italic=False):
-        self.set_font('Arial', 'I' if italic else '', 8)
+        self.set_font(FONT_FACE, 'I' if italic else '', 8)
         self.set_text_color(50, 50, 50)
         self.multi_cell(0, 5, text)
         self.ln(1)
@@ -308,16 +309,16 @@ def genereaza_certificat(zi, luna, an, cod_fiscal, output_dir=None):
     pdf.add_page()
 
     # ── ANTET ─────────────────────────────────
-    pdf.set_font('Helvetica', 'B', 18)
+    pdf.set_font(FONT_FACE, 'B', 18)
     pdf.set_text_color(40, 15, 80)
     pdf.ln(8)
     pdf.cell(0, 10, 'CERTIFICATUL NUMEROLOGIC AL VIETII', align='C', ln=True)
 
-    pdf.set_font('Helvetica', 'I', 10)
+    pdf.set_font(FONT_FACE, 'I', 10)
     pdf.set_text_color(201, 168, 76)
     pdf.cell(0, 6, 'Documentul Sacru al Sufletului', align='C', ln=True)
 
-    pdf.set_font('Helvetica', '', 8)
+    pdf.set_font(FONT_FACE, '', 8)
     pdf.set_text_color(120, 100, 160)
     pdf.cell(0, 5, '"Every Soul Has a Map"', align='C', ln=True)
     pdf.ln(3)
@@ -329,7 +330,7 @@ def genereaza_certificat(zi, luna, an, cod_fiscal, output_dir=None):
     pdf.ln(4)
 
     # Date identificare
-    pdf.set_font('Helvetica', '', 8)
+    pdf.set_font(FONT_FACE, '', 8)
     pdf.set_text_color(100, 100, 100)
     pdf.cell(95, 5, f'Data nasterii: {data_nastere}', align='L', ln=False)
     pdf.cell(95, 5, f'Nr. Certificat: {nr}', align='R', ln=True)
@@ -386,7 +387,7 @@ def genereaza_certificat(zi, luna, an, cod_fiscal, output_dir=None):
     # ── SEC 7: AFIRMATIA SACRA ────────────────
     pdf.titlu_sectiune('VII. Afirmatia Sacra a Vietii Tale')
     pdf.ln(2)
-    pdf.set_font('Helvetica', 'I', 9)
+    pdf.set_font(FONT_FACE, 'I', 9)
     pdf.set_text_color(40, 15, 80)
 
     afirmatie = AFIRMATII.get(cv, '')
@@ -406,7 +407,7 @@ def genereaza_certificat(zi, luna, an, cod_fiscal, output_dir=None):
     pdf.line(20, pdf.get_y(), 190, pdf.get_y())
     pdf.ln(3)
 
-    pdf.set_font('Helvetica', '', 7)
+    pdf.set_font(FONT_FACE, '', 7)
     pdf.set_text_color(150, 130, 80)
     pdf.multi_cell(0, 4,
         'Emis de: Global Spiritual Identity Foundation (GSIF)  |  Metodologie: Numerologie Pitagoreica Clasica v1.0\n'

@@ -26,6 +26,11 @@ services:
       # ── n8n Cloud Webhook ─────────────────────────
       - key: N8N_WEBHOOK_URL
         value: https://aumatizari.app.n8n.cloud/webhook/gsif-certificate
+      # ── Stripe ───────────────────────────────────
+      - key: STRIPE_SECRET_KEY
+        sync: false   # setează manual în Render Dashboard: sk_live_... sau sk_test_...
+      - key: STRIPE_PRICE_EUR
+        value: "20"
       # ── Counter seed ──────────────────────────────
       - key: COUNTER_SEED
         value: "1247"

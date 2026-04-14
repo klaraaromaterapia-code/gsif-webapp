@@ -542,6 +542,66 @@ def robots():
     return send_from_directory('static', 'robots.txt')
 
 
+@app.route('/favicon.ico')
+def favicon():
+    from flask import send_from_directory
+    return send_from_directory('static', 'favicon.svg', mimetype='image/svg+xml')
+
+
+# ── Stripe Webhook ───────────────────────────
+# Setează STRIPE_WEBHOOK_SECRET în Render env vars după ce creezi webhook-ul în Stripe Dashboard
+# Events: checkout.session.completed
+STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
+
+@app.route('/webhook/stripe', methods=['POST'])
+def stripe_webhook():
+    """
+    Webhook Stripe — backup pentru /payment/success.
+    Dacă userul plătește dar browserul se închide înainte de redirect,
+    certificatul se generează tot și emailul se trimite automat.
+    """
+    payload = request.get_data()
+    sig_header = request.headers.get('Stripe-Signature', '')
+
+    if not STRIPE_SECRET_KEY:
+        return jsonify({'error': 'Stripe not configured'}), 400
+
+    try:
+        import stripe as _stripe
+        _stripe.api_key = STRIPE_SECRET_KEY
+
+        if STRIPE_WEBHOOK_SECRET:
+            event = _stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
+        else:
+            # Fără secret (dev) — parsăm direct dar nu verificăm semnătura
+            import json
+            event = _stripe.Event.construct_from(json.loads(payload), _stripe.api_key)
+
+        if event['type'] == 'checkout.session.completed':
+            cs = event['data']['object']
+            if cs.get('payment_status') != 'paid':
+                return jsonify({'status': 'ignored'}), 200
+
+            meta = cs.get('metadata') or {}
+            prenume      = meta.get('prenume', '')
+            data_nastere = meta.get('data_nastere', '')
+            cnp          = meta.get('cnp', '')
+            email        = meta.get('email', '')
+
+            if data_nastere and cnp:
+                try:
+                    _genera_certificat_pentru(prenume, data_nastere, cnp, email)
+                    log.info(f"Webhook: certificat generat pentru {prenume or 'anonim'} | session={cs.get('id','')[:20]}")
+                except Exception as e:
+                    log.error(f"Webhook: eroare generare: {e}", exc_info=True)
+
+        return jsonify({'status': 'ok'}), 200
+
+    except Exception as e:
+        log.error(f"Stripe webhook error: {e}")
+        return jsonify({'error': str(e)}), 400
+
+
 @app.route('/api/health')
 def health():
     return jsonify({'status': 'ok', 'app': 'GSIF', 'version': '1.0',

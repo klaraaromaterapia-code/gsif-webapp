@@ -384,6 +384,7 @@ def genereaza():
                 site = SITE_URL if 'localhost' not in SITE_URL else request.host_url.rstrip('/')
                 checkout_session = _stripe.checkout.Session.create(
                     payment_method_types=['card'],
+                    locale='ro',
                     line_items=[{
                         'price_data': {
                             'currency': 'eur',

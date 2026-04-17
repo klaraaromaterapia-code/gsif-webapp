@@ -34,3 +34,13 @@ services:
       # ── Counter seed ──────────────────────────────
       - key: COUNTER_SEED
         value: "1247"
+      # ── Admin & Alerting ─────────────────────
+      - key: ADMIN_KEY
+        sync: false   # setează manual în Render Dashboard (ex: gsif-admin-2026)
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false   # token bot Telegram pentru alerte plăți eșuate
+      - key: TELEGRAM_ADMIN_CHAT_ID
+        value: "6148595336"
+      # ── Stripe Webhook ───────────────────────
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false   # din Stripe Dashboard → Developers → Webhooks → Signing secret

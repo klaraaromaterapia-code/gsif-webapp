@@ -427,6 +427,42 @@ def genereaza():
 
 
 # ── Plată Stripe — succes ────────────────────────────
+def _meta_get(meta, key):
+    """Accesează metadata Stripe compatibil cu SDK v5+/v7+ (StripeObject sau dict)."""
+    if hasattr(meta, key):
+        return getattr(meta, key) or ''
+    if hasattr(meta, 'get'):
+        return meta.get(key, '') or ''
+    return ''
+
+def _alerta_telegram_plata_esuata(session_id: str, eroare: str, meta: dict):
+    """Trimite alertă Telegram când o plată e procesată dar generarea eșuează."""
+    TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+    TELEGRAM_CHAT_ID   = os.environ.get('TELEGRAM_ADMIN_CHAT_ID', '6148595336')
+    if not TELEGRAM_BOT_TOKEN:
+        return
+    import threading, urllib.request as _req, json as _json, urllib.parse as _parse
+    def _send():
+        try:
+            prenume = _meta_get(meta, 'prenume') or 'necunoscut'
+            email   = _meta_get(meta, 'email') or 'necunoscut'
+            msg = (
+                f"⚠️ PLATĂ PROCESATĂ — CERTIFICAT NEGENERAT\n\n"
+                f"Session: {session_id[:30]}...\n"
+                f"Prenume: {prenume}\n"
+                f"Email: {email}\n"
+                f"Eroare: {str(eroare)[:200]}\n\n"
+                f"Retry: {SITE_URL}/admin/retry-payment/{session_id}"
+            )
+            url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+            data = _json.dumps({'chat_id': TELEGRAM_CHAT_ID, 'text': msg}).encode()
+            _req.urlopen(_req.Request(url, data=data,
+                headers={'Content-Type': 'application/json'}), timeout=5)
+        except Exception as ex:
+            log.debug(f"Telegram alert skip: {ex}")
+    threading.Thread(target=_send, daemon=True).start()
+
+
 @app.route('/payment/success')
 def payment_success():
     session_id = request.args.get('session_id', '')
@@ -437,15 +473,16 @@ def payment_success():
         _stripe.api_key = STRIPE_SECRET_KEY
         cs = _stripe.checkout.Session.retrieve(session_id)
 
-        if cs.payment_status != 'paid':
+        payment_status = getattr(cs, 'payment_status', None) or cs.get('payment_status', '')
+        if payment_status != 'paid':
             flash('Plata nu a fost finalizată. Contactează-ne dacă ai fost debitat.', 'error')
             return redirect(url_for('genereaza'))
 
-        meta         = cs.metadata or {}
-        prenume      = meta.get('prenume', '')
-        data_nastere = meta.get('data_nastere', '')
-        cnp          = meta.get('cnp', '')
-        email        = meta.get('email', '')
+        meta         = getattr(cs, 'metadata', None) or {}
+        prenume      = _meta_get(meta, 'prenume')
+        data_nastere = _meta_get(meta, 'data_nastere')
+        cnp          = _meta_get(meta, 'cnp')
+        email        = _meta_get(meta, 'email')
 
         result = _genera_certificat_pentru(prenume, data_nastere, cnp, email)
         flash('Plată confirmată ✦ Certificatul tău a fost generat!', 'success')
@@ -454,8 +491,41 @@ def payment_success():
 
     except Exception as e:
         log.error(f"Payment success error: {e}", exc_info=True)
-        flash('Plata a fost înregistrată dar a apărut o eroare la generare. Contactează-ne la contact@everysoulhasamap.org', 'error')
+        try:
+            _alerta_telegram_plata_esuata(session_id, e, getattr(cs, 'metadata', {}) if 'cs' in dir() else {})
+        except Exception:
+            pass
+        flash('Plata a fost înregistrată dar a apărut o eroare la generare. Contactează-ne la klara.aromaterapia@gmail.com', 'error')
         return redirect(url_for('genereaza'))
+
+
+@app.route('/admin/retry-payment/<session_id>')
+def admin_retry_payment(session_id):
+    """Rută admin: regenerează certificatul pentru o sesiune Stripe deja plătită."""
+    admin_key = request.args.get('key', '')
+    expected  = os.environ.get('ADMIN_KEY', 'gsif-admin-2026')
+    if admin_key != expected:
+        return 'Unauthorized', 403
+    if not STRIPE_SECRET_KEY:
+        return 'Stripe not configured', 500
+    try:
+        import stripe as _stripe
+        _stripe.api_key = STRIPE_SECRET_KEY
+        cs = _stripe.checkout.Session.retrieve(session_id)
+        payment_status = getattr(cs, 'payment_status', None) or cs.get('payment_status', '')
+        if payment_status != 'paid':
+            return f'Payment status: {payment_status} — not paid', 400
+        meta         = getattr(cs, 'metadata', None) or {}
+        prenume      = _meta_get(meta, 'prenume')
+        data_nastere = _meta_get(meta, 'data_nastere')
+        cnp          = _meta_get(meta, 'cnp')
+        email        = _meta_get(meta, 'email')
+        result = _genera_certificat_pentru(prenume, data_nastere, cnp, email)
+        return jsonify({'status': 'ok', 'cifra_vietii': result['cifra_vietii'],
+                        'email_sent': result['email_sent'], 'download': result['download_url']})
+    except Exception as e:
+        log.error(f"Admin retry error: {e}", exc_info=True)
+        return jsonify({'status': 'error', 'error': str(e)}), 500
 
 
 # ── Plată Stripe — anulare ───────────────────────────

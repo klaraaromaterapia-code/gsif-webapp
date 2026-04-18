@@ -281,7 +281,7 @@ class CertificatPDF(FPDF):
         self.ln(1)
 
 
-def genereaza_certificat(zi, luna, an, cod_fiscal, output_dir=None):
+def genereaza_certificat(zi, luna, an, cod_fiscal, output_dir=None, filename_suffix=''):
     """
     Genereaza Certificatul Numerologic al Vietii ca PDF.
     Returneaza calea catre fisierul generat.
@@ -421,7 +421,7 @@ def genereaza_certificat(zi, luna, an, cod_fiscal, output_dir=None):
         output_dir = os.path.dirname(os.path.abspath(__file__))
 
     os.makedirs(output_dir, exist_ok=True)
-    filename = f"Certificat_GSIF_{zi:02d}{luna:02d}{an}.pdf"
+    filename = f"Certificat_GSIF_{zi:02d}{luna:02d}{an}{filename_suffix}.pdf"
     filepath = os.path.join(output_dir, filename)
     pdf.output(filepath)
     return filepath

@@ -58,7 +58,7 @@ EMAIL_CONFIG = {
     'username':   os.environ.get('SMTP_USER', ''),
     'password':   os.environ.get('SMTP_PASS', ''),
     'from_name':  'GSIF — Every Soul Has a Map',
-    'from_email': os.environ.get('SMTP_USER', 'contact@gsif.org'),
+    'from_email': os.environ.get('SMTP_USER', 'auris6368@gmail.com'),
 }
 
 logging.basicConfig(level=logging.INFO,

@@ -412,7 +412,7 @@ def genereaza_certificat(zi, luna, an, cod_fiscal, output_dir=None, filename_suf
     pdf.multi_cell(0, 4,
         'Emis de: Global Spiritual Identity Foundation (GSIF)  |  Metodologie: Numerologie Pitagoreica Clasica v1.0\n'
         'Acest certificat are valoare spirituala si educationala. Nu inlocuieste niciun document juridic oficial.\n'
-        'gsif.org  |  contact@gsif.org  |  "Every Soul Has a Map"',
+        'everysoulhasamap.org  |  auris6368@gmail.com  |  "Every Soul Has a Map"',
         align='C'
     )
 

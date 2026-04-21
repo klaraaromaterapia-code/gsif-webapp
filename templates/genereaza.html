@@ -29,6 +29,10 @@
 .pricing-features { list-style:none; padding:0; margin:0 0 1.2rem; text-align:left; display:inline-block; }
 .pricing-features li { font-size:0.88rem; color:var(--text-mid); padding:0.3rem 0; }
 .pricing-features li::before { content:"✦ "; color:var(--gold); }
+
+@media (max-width: 600px) {
+    .pricing-grid-2col { grid-template-columns: 1fr !important; }
+}
 </style>
 {% endblock %}
 
@@ -52,21 +56,53 @@
 
         {% if not result %}
 
-        <!-- PRICING CARD -->
-        <div class="pricing-card">
-            <div class="pricing-badge">✦ O singură plată · Fără abonament</div>
-            <div class="pricing-amount"><span>€</span>20</div>
-            <p class="pricing-once">plată unică · acces instant</p>
-            <ul class="pricing-features">
-                <li>Cifra Vieții + Arhetip Spiritual</li>
-                <li>31 de secțiuni spirituale personalizate</li>
-                <li>Chakra dominantă la naștere</li>
-                <li>Cristale sacre &amp; Culori de putere</li>
-                <li>Misiunea Sufletului + Afirmație personalizată</li>
-                <li>An Personal 2026 — mesaj &amp; energie</li>
-                <li>PDF de înaltă calitate, descărcabil instant</li>
-                <li>Opțional: livrat și pe email</li>
-            </ul>
+        <!-- PRICING GRID — 2 tiere -->
+        <div class="pricing-grid-2col" style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:2rem;">
+
+            <!-- TIER 1 — Standard €20 -->
+            <div class="pricing-card" style="margin-bottom:0;">
+                <div class="pricing-badge">✦ Standard · Instant</div>
+                <div class="pricing-amount"><span>€</span>20</div>
+                <p class="pricing-once">plată unică · acces instant</p>
+                <ul class="pricing-features">
+                    <li>Cifra Vieții + Arhetip Spiritual</li>
+                    <li>Chakra dominantă la naștere</li>
+                    <li>Cristale sacre &amp; Culori de putere</li>
+                    <li>Misiunea Sufletului + Afirmație</li>
+                    <li>Talente native &amp; Lecție karmică</li>
+                    <li>An Personal 2026</li>
+                    <li>PDF descărcabil instant</li>
+                    <li>Opțional: livrat pe email</li>
+                </ul>
+                <p style="font-size:0.78rem;color:var(--text-light);margin-top:0.5rem;">7 secțiuni numerologice esențiale</p>
+            </div>
+
+            <!-- TIER 2 — Premium Almuza contact -->
+            <div class="pricing-card" style="margin-bottom:0;background:linear-gradient(135deg,rgba(40,15,80,0.08),rgba(201,168,76,0.15));border-color:var(--gold);">
+                <div class="pricing-badge" style="background:rgba(201,168,76,0.3);color:var(--violet);">✦ Premium · Personalizat</div>
+                <div class="pricing-amount" style="font-size:2rem;padding-top:0.3rem;">Almuza</div>
+                <p class="pricing-once">certificat complet la cerere</p>
+                <ul class="pricing-features">
+                    <li>Toate cele 31 secțiuni spirituale</li>
+                    <li>Almuza Românească + Fibonacci</li>
+                    <li>Programe limitante &amp; Karma</li>
+                    <li>Sănătate holistică personalizată</li>
+                    <li>Cale spre Ascensiune</li>
+                    <li>Cristale, Chakre, Cromatică</li>
+                    <li>Compatibilitate numerologică</li>
+                    <li>Livrat direct de fondator</li>
+                </ul>
+                <a href="mailto:auris6368@gmail.com?subject=Certificat%20Almuza%20Complet%20—%2031%20secțiuni&body=Bună%20ziua%2C%20doresc%20certificatul%20numerologic%20complet%20Almuza%20(31%20secțiuni).%0A%0AData%20mea%20de%20naștere%3A%20"
+                   style="display:inline-block;margin-top:0.75rem;background:var(--violet);color:var(--gold);padding:0.6rem 1.4rem;border-radius:30px;font-size:0.82rem;font-weight:700;letter-spacing:1px;text-decoration:none;">
+                    ✉ Solicită prin email ✦
+                </a>
+            </div>
+
+        </div>
+
+        <!-- separator vizual -->
+        <div style="text-align:center;margin-bottom:1.5rem;">
+            <p style="font-size:0.78rem;color:var(--text-light);letter-spacing:2px;text-transform:uppercase;">↓ Completează mai jos pentru certificatul Standard ↓</p>
         </div>
 
         <!-- FORMULARUL -->

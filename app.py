@@ -363,6 +363,7 @@ def _genera_certificat_pentru(prenume: str, data_nastere: str, cnp: str, email: 
         suffix = f'_{clean[-8:]}' if len(clean) >= 8 else f'_{clean}'
 
     pdf_path = genereaza_certificat(zi, luna, an, cnp,
+                                    prenume=prenume,
                                     output_dir=CERTS_DIR,
                                     filename_suffix=suffix)
 

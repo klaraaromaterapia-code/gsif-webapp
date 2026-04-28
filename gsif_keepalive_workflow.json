@@ -1,0 +1,141 @@
+{
+  "name": "GSIF Keep-Alive Ping",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 14
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger-keepalive",
+      "name": "La fiecare 14 minute",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://everysoulhasamap.org/api/health",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": false
+            }
+          }
+        }
+      },
+      "id": "http-ping-keepalive",
+      "name": "Ping Site",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "check-status",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "ok",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-health-keepalive",
+      "name": "Site OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "6148595336",
+        "text": "=⚠️ *GSIF Site DOWN!*\n\nhttps://everysoulhasamap.org nu răspunde!\n\n🕐 {{ $now.format('HH:mm DD/MM/YYYY') }}\n\nVerifică Render Dashboard.",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram-alert-down",
+      "name": "Alertă Site Down",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [960, 440],
+      "credentials": {
+        "telegramApi": {
+          "id": "zgCbPrWiaOTC8PXq",
+          "name": "Telegram account 5"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "La fiecare 14 minute": {
+      "main": [
+        [
+          {
+            "node": "Ping Site",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ping Site": {
+      "main": [
+        [
+          {
+            "node": "Site OK?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alertă Site Down",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Site OK?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Alertă Site Down",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "tags": []
+}

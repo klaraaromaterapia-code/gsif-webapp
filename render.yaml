@@ -31,7 +31,7 @@ services:
       - key: STRIPE_SECRET_KEY
         sync: false   # setează manual în Render Dashboard: sk_live_... sau sk_test_...
       - key: STRIPE_PRICE_EUR
-        value: "20"
+        value: "6.98"
       # ── Counter seed ──────────────────────────────
       - key: COUNTER_SEED
         value: "1247"

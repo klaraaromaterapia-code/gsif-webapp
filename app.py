@@ -40,7 +40,7 @@ app.secret_key = os.environ.get('GSIF_SECRET_KEY', 'gsif-every-soul-has-a-map-20
 
 SITE_URL          = os.environ.get('SITE_URL', 'http://localhost:5000')
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
-STRIPE_PRICE_EUR  = int(os.environ.get('STRIPE_PRICE_EUR', '20'))
+STRIPE_PRICE_EUR  = float(os.environ.get('STRIPE_PRICE_EUR', '6.98'))
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
 ADMIN_KEY         = os.environ.get('ADMIN_KEY', 'gsif-admin-2026')
 
@@ -511,7 +511,7 @@ def genereaza():
                                 'name': 'Certificatul Numerologic al Vieții',
                                 'description': 'Harta spirituală personalizată — GSIF · Every Soul Has a Map',
                             },
-                            'unit_amount': STRIPE_PRICE_EUR * 100,
+                            'unit_amount': int(round(STRIPE_PRICE_EUR * 100)),
                         },
                         'quantity': 1,
                     }],
